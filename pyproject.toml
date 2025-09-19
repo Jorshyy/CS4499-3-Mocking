@@ -1,0 +1,17 @@
+[project]
+name = "cs4499-3-mocking"
+version = "0.1.0"
+description = "Mocking Example for CS4499"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pycurl>=7.45.6",
+    "requests>=2.32.5",
+]
+
+[dependency-groups]
+tool = [
+    "mock>=5.2.0",
+    "pytest>=8.4.2",
+    "pytest-mock>=3.15.0",
+]
