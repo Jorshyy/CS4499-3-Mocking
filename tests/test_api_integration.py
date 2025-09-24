@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, Mock, call
+from unittest.mock import call
 from api_integration import metrics
 
 
@@ -12,7 +12,7 @@ from api_integration import metrics
     ]
 )
 def test_get_user_metrics(mocker, username, token, status_code, expected):
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = status_code
     mock_response.json.return_value = expected
 
@@ -26,33 +26,38 @@ def test_get_user_metrics(mocker, username, token, status_code, expected):
 
 
 @pytest.mark.parametrize(
-    "json_return_value, status, expected_calls",
+    "json_return_value, status, expected_calls, expected_json",
     [
-        pytest.param([], 200, [], id="get_user_repos_no_repos"),
+        pytest.param([], 200, [], [], id="get_user_repos_no_repos"),
         pytest.param(
             [{"name": "repo1", "stargazers_count": 5, "language": "Python"}],
             200,
             [call("https://api.github.com/users/user1/repos", headers={'Accept': 'application/vnd.github+json'}, params={'per_page': 30, 'page': 1})],
+            [{"name": "repo1", "stars": 5, "language": "Python"}],
             id="get_user_repos_1_page"
         ),
         pytest.param(
             [],
             418,
             [],
+            [],
             id="empty_repos_response"
         )
     ]
 )
-def test_get_github_user_repos(mocker, status, json_return_value, expected_calls):
-    mock_response_page = MagicMock()
+def test_get_github_user_repos(mocker, status, json_return_value, expected_calls, expected_json):
+    mock_response_page = mocker.MagicMock()
     mock_response_page.status_code = status
     mock_response_page.json.return_value = json_return_value
 
 
     gitHubRequest = mocker.patch('api_integration.metrics.requests.get')
+    gitHubRequest.return_value = mock_response_page
 
-    metrics.get_github_user_repos("user1")
+    # Call function
+    result = metrics.get_github_user_repos("user1")
     gitHubRequest.assert_has_calls(expected_calls)
+    assert result == expected_json
 
 
 @pytest.mark.parametrize(
@@ -70,30 +75,30 @@ def test_submit_datadog_metric(mocker, status_code, expected):
     mocker.patch('api_integration.metrics.pycurl.Curl', return_value=curl_mock)
 
     # mock setopt
-    setopt_mock = mocker.patch.object(curl_mock, 'setopt')
+    mocker.patch.object(curl_mock, 'setopt')
     # mock perform
-    perform_mock = mocker.patch.object(curl_mock, 'perform')
+    mocker.patch.object(curl_mock, 'perform')
     # mock getinfo
-    getinfo_mock = mocker.patch.object(curl_mock, 'getinfo', return_value=status_code)
+    mocker.patch.object(curl_mock, 'getinfo', return_value=status_code)
     # mock close
-    close_mock = mocker.patch.object(curl_mock, 'close')
+    mocker.patch.object(curl_mock, 'close')
 
     result = metrics.submit_datadog_metric("metric_name", 100, "api_key", "app_key")
     assert result == expected
 
 
 @pytest.mark.parametrize(
-    "stars_list, expected",
+    "username, stars_list, expected",
     [
-        pytest.param([6, 1, 1, 1, 1], {"username": "user1", "total_repositories": 5, "total_stars": 10, "activity_level": "low"}, id="low_activity"),
-        # pytest.param([5, 5, 5, 5, 5], {"username": "user1", "total_repositories": 5, "total_stars": 25, "activity_level": "moderate"}, id="moderate_activity"),
-        # pytest.param([40, 20, 10, 5], {"username": "user1", "total_repositories": 4, "total_stars": 75, "activity_level": "high"}, id="high_activity"),
+        pytest.param("user1", [6, 1, 1, 1, 1], {"username": "user1", "total_repositories": 5, "total_stars": 10, "activity_level": "low"}, id="low_activity"),
+        pytest.param("user1", [5, 5, 5, 5, 5], {"username": "user1", "total_repositories": 5, "total_stars": 25, "activity_level": "moderate"}, id="moderate_activity"),
+        pytest.param("user1", [40, 20, 10, 5], {"username": "user1", "total_repositories": 4, "total_stars": 75, "activity_level": "high"}, id="high_activity"),
     ]
 )
-def test_analyze_developer_activity(mocker, stars_list, expected):
+def test_analyze_developer_activity(mocker, username, stars_list, expected):
     # mock get_github_user_info
     mock_get_user_info = mocker.patch('api_integration.metrics.get_github_user_info')
-    mock_get_user_info.return_value = {"login": "user1"}
+    mock_get_user_info.return_value = {"login": username}
 
     # mock get_github_user_repos
     mock_get_user_repos = mocker.patch('api_integration.metrics.get_github_user_repos')
@@ -103,9 +108,16 @@ def test_analyze_developer_activity(mocker, stars_list, expected):
     mock_submit_metric = mocker.patch('api_integration.metrics.submit_datadog_metric')
     mock_submit_metric.return_value = {"status": "success"}
 
-    result = metrics.analyze_developer_activity("user1", "github_token", "datadog_api_key", "datadog_app_key")
+    expected_metric_calls = [
+        call(f"github.user.{username}.total_stars", expected["total_stars"], "datadog_api_key", "datadog_app_key"),
+        call(f"github.user.{username}.repo_count", expected["total_repositories"], "datadog_api_key", "datadog_app_key")
+    ]
+    result = metrics.analyze_developer_activity(username, "github_token", "datadog_api_key", "datadog_app_key")
 
     assert result == expected
     mock_get_user_info.assert_called_once()
     mock_get_user_repos.assert_called_once()
     mock_submit_metric.assert_called()
+    mock_submit_metric.assert_has_calls(expected_metric_calls, any_order=True)
+    assert mock_submit_metric.call_count == 2
+
