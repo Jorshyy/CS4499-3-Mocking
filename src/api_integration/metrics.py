@@ -98,25 +98,16 @@ class GitHubMetricsClient:
             return {"status": "error", "code": status_code}
 
     def analyze_developer_activity(self, username):
-        """Analyze a GitHub user's activity and submit metrics to Datadog."""
-        user_info = self.get_github_user_info(username)
         repos = self.get_github_user_repos(username)
-
         total_stars = sum(repo["stars"] for repo in repos)
-        
-        self.submit_datadog_metric(
-            f"github.user.{username}.total_stars",
-            total_stars
-        )
-        
-        self.submit_datadog_metric(
-            f"github.user.{username}.repo_count",
-            len(repos)
-        )
-        
+        repo_count  = len(repos)
+
+        self.submit_datadog_metric(f"github.user.{username}.total_stars", total_stars)
+        self.submit_datadog_metric(f"github.user.{username}.repo_count",  repo_count)
+
         return {
             "username": username,
-            "total_repositories": len(repos),
+            "total_repositories": repo_count,
             "total_stars": total_stars,
-            "activity_level": "high" if total_stars > 50 else "moderate" if total_stars > 10 else "low"
+            "activity_level": "high" if total_stars > 50 else ("moderate" if total_stars > 10 else "low"),
         }
