@@ -5,6 +5,8 @@ from io import BytesIO
 
 
 class GitHubMetricsClient:
+    GITHUB_API_BASE = "https://api.github.com"
+    DATADOG_API_BASE = "https://api.datadoghq.com/api/v1"
     def __init__(self, github_token=None, datadog_api_key=None, datadog_app_key=None, host="localhost"):
         self.github_token = github_token
         self.datadog_api_key = datadog_api_key
@@ -13,7 +15,7 @@ class GitHubMetricsClient:
 
     def get_github_user_info(self, username):
         """Fetch GitHub user information."""
-        url = f"https://api.github.com/users/{username}"
+        url = f"{self.GITHUB_API_BASE}/users/{username}"
         headers = {"Accept": "application/vnd.github+json"}
 
         if self.github_token:
@@ -29,7 +31,7 @@ class GitHubMetricsClient:
 
     def get_github_user_repos(self, username):
         """Fetch all repositories of a GitHub user."""
-        url = f"https://api.github.com/users/{username}/repos"
+        url = f"{self.GITHUB_API_BASE}/users/{username}/repos"
         headers = {"Accept": "application/vnd.github+json"}
 
         if self.github_token:
@@ -66,7 +68,7 @@ class GitHubMetricsClient:
 
     def submit_datadog_metric(self, metric_name, value):
         """Submit a custom metric to Datadog."""
-        url = "https://api.datadoghq.com/api/v1/series"
+        url = f"{self.DATADOG_API_BASE}/series"
         
         data = {
             "series": [{
