@@ -97,7 +97,6 @@ class GitHubMetricsClient:
         else:
             return {"status": "error", "code": status_code}
 
-
     def analyze_developer_activity(self, username):
         """Analyze a GitHub user's activity and submit metrics to Datadog."""
         user_info = self.get_github_user_info(username)
@@ -107,16 +106,12 @@ class GitHubMetricsClient:
         
         self.submit_datadog_metric(
             f"github.user.{username}.total_stars",
-            total_stars,
-            self.datadog_api_key,
-            self.datadog_app_key
+            total_stars
         )
         
         self.submit_datadog_metric(
             f"github.user.{username}.repo_count",
-            len(repos),
-            self.datadog_api_key,
-            self.datadog_app_key
+            len(repos)
         )
         
         return {
