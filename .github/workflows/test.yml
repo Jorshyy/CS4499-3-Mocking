@@ -25,9 +25,16 @@ jobs:
     - name: Install dependencies
       run: uv sync
 
+    - name: Install test tools (pytest, pytest-cov)
+      run: uv run python -m pip install pytest pytest-cov
+
     - name: Run tests with coverage
       run: |
-        uv run pytest \ --cov=src/api_integration \ --cov-report=term-missing \ --cov-report=lcov:coverage.lcov \ tests/
+        uv run pytest \
+          --cov=src/api_integration \
+          --cov-report=term \
+          --cov-report=lcov:coverage.lcov \
+          tests/
 
     - name: Verify coverage is at least 80%
       uses: VeryGoodOpenSource/very_good_coverage@v3
