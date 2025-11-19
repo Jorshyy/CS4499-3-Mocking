@@ -23,11 +23,11 @@ jobs:
         enable-cache: true
 
     - name: Install dependencies
-      run: uv sync --group tool
+      run: uv sync
 
     - name: Run tests with coverage
       run: |
-        uv run pytest --cov=src/api_integration --cov-report=lcov tests/
+        uv run pytest \ --cov=src/api_integration \ --cov-report=term-missing \ --cov-report=lcov:coverage.lcov \ tests/
 
     - name: Verify coverage is at least 80%
       uses: VeryGoodOpenSource/very_good_coverage@v3
