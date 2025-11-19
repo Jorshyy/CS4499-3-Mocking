@@ -23,10 +23,10 @@ jobs:
         enable-cache: true
 
     - name: Install dependencies
-      run: uv sync
+      run: uv sync --group tool
 
     - name: Install test tools (pytest, pytest-cov)
-      run: uv run python -m pip install pytest pytest-cov
+      run: uv pip install pytest pytest-cov
 
     - name: Run tests with coverage
       run: |
