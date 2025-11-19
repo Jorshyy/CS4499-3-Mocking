@@ -1,0 +1,33 @@
+name: Run Tests and Coverage
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Run tests with coverage
+      run: uv run pytest --cov --cov-report=xml
+
+    - name: Verify coverage is at least 80%
+      uses: verygoodsecurity/coverage@v1
+      with:
+        min-coverage: 80
+        path: coverage.xml
