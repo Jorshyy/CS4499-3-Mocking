@@ -27,7 +27,7 @@ jobs:
       run: uv run pytest --cov --cov-report=xml
 
     - name: Verify coverage is at least 80%
-      uses: verygoodtest/coverage@v1
+      uses: VeryGoodOpenSource/very_good_coverage@v3
       with:
-        min-coverage: 80
-        path: coverage.xml
+        path: coverage.lcov
+        min_coverage: 80
